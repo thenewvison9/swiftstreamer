@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, FastForward, Rewind } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VideoPlayerProps {
@@ -20,6 +20,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [showControls, setShowControls] = useState(true);
   const [qualities, setQualities] = useState<{ height: number; level: number }[]>([]);
   const [currentQuality, setCurrentQuality] = useState<number>(0);
+  const [isBuffering, setIsBuffering] = useState(false);
   const controlsTimeoutRef = useRef<number>();
   const hlsRef = useRef<Hls | null>(null);
 
@@ -27,10 +28,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     const video = videoRef.current;
     if (!video) return;
 
+    const handleWaiting = () => setIsBuffering(true);
+    const handlePlaying = () => setIsBuffering(false);
+
     if (Hls.isSupported()) {
       const hls = new Hls({
         startLevel: -1,
         capLevelToPlayerSize: true,
+        debug: false,
       });
       hlsRef.current = hls;
 
@@ -53,18 +58,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         }
       });
 
+      video.addEventListener('waiting', handleWaiting);
+      video.addEventListener('playing', handlePlaying);
+
       return () => {
+        video.removeEventListener('waiting', handleWaiting);
+        video.removeEventListener('playing', handlePlaying);
         hls.destroy();
       };
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url;
-      video.addEventListener('loadedmetadata', () => {
-        setLoading(false);
-      });
-      video.addEventListener('error', () => {
-        setError('Failed to load video stream');
-        setLoading(false);
-      });
     }
   }, [url]);
 
@@ -77,7 +78,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       setDuration(video.duration);
     };
 
-    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('timeupload', handleTimeUpdate);
     return () => video.removeEventListener('timeupdate', handleTimeUpdate);
   }, []);
 
@@ -124,6 +125,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }
   };
 
+  const handleSkip = (seconds: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime += seconds;
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -157,9 +164,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+      {(loading || isBuffering) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+          <Loader2 className="w-12 h-12 text-red-500 animate-spin" />
         </div>
       )}
       
@@ -171,11 +178,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       />
 
       <div className={cn(
-        "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 transition-opacity duration-300",
-        showControls ? "opacity-100" : "opacity-0"
+        "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-6 transition-all duration-300",
+        showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 max-w-screen-lg mx-auto">
+          {/* Progress bar */}
+          <input
+            type="range"
+            min="0"
+            max={duration || 100}
+            value={currentTime}
+            onChange={handleTimeSeek}
+            className="w-full h-1 accent-red-500 bg-gray-600 rounded-full appearance-none cursor-pointer"
+          />
+
           <div className="flex items-center gap-4">
+            {/* Play/Pause button */}
             <button
               onClick={handlePlayPause}
               className="text-white hover:text-red-500 transition-colors"
@@ -183,6 +201,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
               {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
             </button>
 
+            {/* Skip buttons */}
+            <button
+              onClick={() => handleSkip(-10)}
+              className="text-white hover:text-red-500 transition-colors"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => handleSkip(10)}
+              className="text-white hover:text-red-500 transition-colors"
+            >
+              <RotateCw className="w-5 h-5" />
+            </button>
+
+            {/* Volume control */}
             <div className="flex items-center gap-2 w-32">
               {volume === 0 ? (
                 <VolumeX className="w-6 h-6 text-white" />
@@ -198,27 +231,31 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                 step="0.1"
                 value={volume}
                 onChange={handleVolumeChange}
-                className="w-full accent-red-500"
+                className="w-full h-1 accent-red-500 bg-gray-600 rounded-full appearance-none cursor-pointer"
               />
             </div>
 
+            {/* Time display */}
             <span className="text-white text-sm">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
 
+            {/* Settings menu */}
             <div className="relative group ml-auto">
               <button className="text-white hover:text-red-500 transition-colors">
                 <Settings className="w-6 h-6" />
               </button>
-              <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-black/90 rounded-lg p-2 min-w-[160px]">
-                <div className="text-white text-sm mb-2">Playback Speed</div>
-                {[0.5, 1, 1.5, 2].map((speed) => (
+              <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block bg-black/95 rounded-lg p-3 min-w-[180px] backdrop-blur-sm border border-white/10">
+                <div className="text-white/80 text-sm mb-2 font-medium">Playback Speed</div>
+                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
                   <button
                     key={speed}
                     onClick={() => handleSpeedChange(speed)}
                     className={cn(
-                      "block w-full text-left px-3 py-1 text-sm",
-                      playbackSpeed === speed ? "text-red-500" : "text-white hover:text-red-500"
+                      "block w-full text-left px-3 py-1.5 text-sm rounded transition-colors",
+                      playbackSpeed === speed 
+                        ? "text-red-500 bg-white/5" 
+                        : "text-white hover:text-red-500 hover:bg-white/5"
                     )}
                   >
                     {speed}x
@@ -226,14 +263,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                 ))}
                 {qualities.length > 0 && (
                   <>
-                    <div className="text-white text-sm mt-2 mb-2 border-t border-white/20 pt-2">Quality</div>
+                    <div className="text-white/80 text-sm mt-3 mb-2 font-medium border-t border-white/10 pt-3">
+                      Quality
+                    </div>
                     {qualities.map(({ height, level }) => (
                       <button
                         key={level}
                         onClick={() => handleQualityChange(level)}
                         className={cn(
-                          "block w-full text-left px-3 py-1 text-sm",
-                          currentQuality === level ? "text-red-500" : "text-white hover:text-red-500"
+                          "block w-full text-left px-3 py-1.5 text-sm rounded transition-colors",
+                          currentQuality === level 
+                            ? "text-red-500 bg-white/5" 
+                            : "text-white hover:text-red-500 hover:bg-white/5"
                         )}
                       >
                         {height}p
@@ -244,15 +285,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
               </div>
             </div>
           </div>
-
-          <input
-            type="range"
-            min="0"
-            max={duration || 100}
-            value={currentTime}
-            onChange={handleTimeSeek}
-            className="w-full accent-red-500"
-          />
         </div>
       </div>
     </div>
