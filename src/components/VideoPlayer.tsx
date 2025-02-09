@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VideoPlayerProps {
@@ -10,6 +10,7 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
@@ -21,6 +22,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [qualities, setQualities] = useState<{ height: number; level: number }[]>([]);
   const [currentQuality, setCurrentQuality] = useState<number>(0);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const controlsTimeoutRef = useRef<number>();
   const hlsRef = useRef<Hls | null>(null);
 
@@ -78,8 +80,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       setDuration(video.duration);
     };
 
-    video.addEventListener('timeupload', handleTimeUpdate);
+    video.addEventListener('timeupdate', handleTimeUpdate);
     return () => video.removeEventListener('timeupdate', handleTimeUpdate);
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   const handlePlayPause = () => {
@@ -92,6 +103,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     } else {
       video.pause();
       setIsPlaying(false);
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      await containerRef.current.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
     }
   };
 
@@ -160,7 +181,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
   return (
     <div 
-      className="relative w-full h-[60vh] bg-black group"
+      ref={containerRef}
+      className={cn(
+        "relative w-full bg-black group transition-all duration-300",
+        isFullscreen ? "h-screen" : "h-[60vh]"
+      )}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
@@ -178,19 +203,24 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       />
 
       <div className={cn(
-        "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-4 py-6 transition-all duration-300",
+        "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 py-6 transition-all duration-300",
         showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <div className="flex flex-col gap-3 max-w-screen-lg mx-auto">
           {/* Progress bar */}
-          <input
-            type="range"
-            min="0"
-            max={duration || 100}
-            value={currentTime}
-            onChange={handleTimeSeek}
-            className="w-full h-1 accent-red-500 bg-gray-600 rounded-full appearance-none cursor-pointer"
-          />
+          <div className="relative group/progress w-full">
+            <input
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              onChange={handleTimeSeek}
+              className="w-full h-1.5 accent-red-500 bg-gray-600 rounded-full appearance-none cursor-pointer hover:h-2 transition-all"
+            />
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/progress:opacity-100 transition-opacity bg-black/90 px-2 py-1 rounded text-xs text-white">
+              {formatTime(currentTime)}
+            </div>
+          </div>
 
           <div className="flex items-center gap-4">
             {/* Play/Pause button */}
@@ -216,14 +246,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
             </button>
 
             {/* Volume control */}
-            <div className="flex items-center gap-2 w-32">
-              {volume === 0 ? (
-                <VolumeX className="w-6 h-6 text-white" />
-              ) : volume < 0.5 ? (
-                <Volume1 className="w-6 h-6 text-white" />
-              ) : (
-                <Volume2 className="w-6 h-6 text-white" />
-              )}
+            <div className="flex items-center gap-2 w-32 group/volume">
+              <button className="text-white hover:text-red-500 transition-colors">
+                {volume === 0 ? (
+                  <VolumeX className="w-6 h-6" />
+                ) : volume < 0.5 ? (
+                  <Volume1 className="w-6 h-6" />
+                ) : (
+                  <Volume2 className="w-6 h-6" />
+                )}
+              </button>
               <input
                 type="range"
                 min="0"
@@ -231,12 +263,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                 step="0.1"
                 value={volume}
                 onChange={handleVolumeChange}
-                className="w-full h-1 accent-red-500 bg-gray-600 rounded-full appearance-none cursor-pointer"
+                className="w-full h-1 accent-red-500 bg-gray-600 rounded-full appearance-none cursor-pointer opacity-0 group-hover/volume:opacity-100 transition-opacity"
               />
             </div>
 
             {/* Time display */}
-            <span className="text-white text-sm">
+            <span className="text-white/90 text-sm font-medium">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
 
@@ -284,6 +316,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                 )}
               </div>
             </div>
+
+            {/* Fullscreen button */}
+            <button
+              onClick={toggleFullscreen}
+              className="text-white hover:text-red-500 transition-colors"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-6 h-6" />
+              ) : (
+                <Maximize2 className="w-6 h-6" />
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -292,3 +336,4 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 };
 
 export default VideoPlayer;
+
