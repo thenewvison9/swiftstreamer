@@ -10,6 +10,12 @@ interface VideoAccessControlProps {
   onAccessGranted: () => void;
 }
 
+const generateExpirationTime = (hours: number): string => {
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + hours);
+  return expiresAt.toISOString();
+};
+
 const VideoAccessControl: React.FC<VideoAccessControlProps> = ({ videoUrl, onAccessGranted }) => {
   const supabase = useSupabaseClient();
 
@@ -37,8 +43,7 @@ const VideoAccessControl: React.FC<VideoAccessControlProps> = ({ videoUrl, onAcc
       }
 
       // Create new access entry
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + hours);
+      const expiresAt = generateExpirationTime(hours);
 
       const { error: insertError } = await supabase
         .from('view_logs')
@@ -46,7 +51,7 @@ const VideoAccessControl: React.FC<VideoAccessControlProps> = ({ videoUrl, onAcc
           ip_address: ip,
           video_url: videoUrl,
           access_type: hours === 24 ? '24h' : '36h',
-          expires_at: expiresAt.toISOString(),
+          expires_at: expiresAt,
         });
 
       if (insertError) throw insertError;
