@@ -8,6 +8,7 @@ import { ViewLog } from '@/types/database';
 interface VideoAccessControlProps {
   videoUrl: string;
   onAccessGranted: () => void;
+  defaultHours?: number;
 }
 
 const generateExpirationTime = (hours: number): string => {
@@ -16,8 +17,14 @@ const generateExpirationTime = (hours: number): string => {
   return expiresAt.toISOString();
 };
 
-const VideoAccessControl: React.FC<VideoAccessControlProps> = ({ videoUrl, onAccessGranted }) => {
+const VideoAccessControl: React.FC<VideoAccessControlProps> = ({ videoUrl, onAccessGranted, defaultHours }) => {
   const supabase = useSupabaseClient();
+
+  React.useEffect(() => {
+    if (defaultHours) {
+      requestAccess(defaultHours);
+    }
+  }, [defaultHours]);
 
   const requestAccess = async (hours: number) => {
     try {
@@ -65,9 +72,17 @@ const VideoAccessControl: React.FC<VideoAccessControlProps> = ({ videoUrl, onAcc
   };
 
   const redirectToTelegram = () => {
-    // Replace with your Telegram bot link
     window.open(`https://t.me/your_bot_username?start=${encodeURIComponent(videoUrl)}`, '_blank');
   };
+
+  // If defaultHours is provided, don't render the buttons
+  if (defaultHours) {
+    return (
+      <div className="flex items-center justify-center p-8 bg-black/90 rounded-lg">
+        <Loader2 className="w-12 h-12 text-[#ea384c] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 p-8 bg-black/90 rounded-lg">
@@ -88,3 +103,4 @@ const VideoAccessControl: React.FC<VideoAccessControlProps> = ({ videoUrl, onAcc
 };
 
 export default VideoAccessControl;
+

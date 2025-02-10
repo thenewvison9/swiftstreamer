@@ -5,6 +5,10 @@ import VideoPlayer from '@/components/VideoPlayer';
 const Index = () => {
   const [searchParams] = useSearchParams();
   const videoUrl = searchParams.get('url');
+  const hours = searchParams.get('h');
+
+  // Validate hours parameter (only allow 24 or 36)
+  const validHours = hours === '24' || hours === '36' ? parseInt(hours) : undefined;
 
   if (!videoUrl) {
     return (
@@ -15,7 +19,7 @@ const Index = () => {
             Please provide a video URL using the <code className="bg-gray-200 px-2 py-1 rounded">url</code> parameter.
           </p>
           <p className="text-sm text-gray-500">
-            Example: <code className="bg-gray-200 px-2 py-1 rounded">?url=https://example.com/video.m3u8</code>
+            Example: <code className="bg-gray-200 px-2 py-1 rounded">?url=https://example.com/video.m3u8&h=24</code>
           </p>
         </div>
       </div>
@@ -25,10 +29,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
-        <VideoPlayer url={videoUrl} />
+        <VideoPlayer url={videoUrl} defaultHours={validHours} />
       </div>
     </div>
   );
 };
 
 export default Index;
+

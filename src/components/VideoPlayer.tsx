@@ -8,9 +8,10 @@ import VideoAccessControl from './VideoAccessControl';
 
 interface VideoPlayerProps {
   url: string;
+  defaultHours?: number;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ url, defaultHours }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -241,7 +242,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   if (!hasAccess) {
     return (
       <div className="w-full aspect-video bg-black flex items-center justify-center">
-        <VideoAccessControl videoUrl={url} onAccessGranted={() => setHasAccess(true)} />
+        <VideoAccessControl 
+          videoUrl={url} 
+          onAccessGranted={() => setHasAccess(true)} 
+          defaultHours={defaultHours}
+        />
       </div>
     );
   }
