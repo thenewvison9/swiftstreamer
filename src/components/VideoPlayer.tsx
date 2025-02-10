@@ -3,6 +3,8 @@ import Hls from 'hls.js';
 import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import VideoAccessControl from './VideoAccessControl';
 
 interface VideoPlayerProps {
   url: string;
@@ -27,6 +29,38 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const controlsTimeoutRef = useRef<number>();
   const hlsRef = useRef<Hls | null>(null);
   const isMobile = useIsMobile();
+  const supabase = useSupabaseClient();
+  const [hasAccess, setHasAccess] = useState<boolean>(false);
+  const [isChecking, setIsChecking] = useState<boolean>(true);
+
+  useEffect(() => {
+    checkAccess();
+  }, [url]);
+
+  const checkAccess = async () => {
+    try {
+      const { data: { ip }, error: ipError } = await supabase.functions.invoke('get-client-ip');
+      
+      if (ipError) throw ipError;
+
+      const { data: access, error: checkError } = await supabase
+        .from('view_logs')
+        .select('*')
+        .eq('ip_address', ip)
+        .eq('video_url', url)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+      setHasAccess(!!access);
+    } catch (error) {
+      console.error('Access check failed:', error);
+      setHasAccess(false);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -195,6 +229,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       }
     }, 3000);
   };
+
+  if (isChecking) {
+    return (
+      <div className="w-full aspect-video bg-black flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-[#ea384c] animate-spin" />
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="w-full aspect-video bg-black flex items-center justify-center">
+        <VideoAccessControl videoUrl={url} onAccessGranted={() => setHasAccess(true)} />
+      </div>
+    );
+  }
 
   if (error) {
     return (
