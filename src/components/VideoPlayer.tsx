@@ -271,9 +271,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
               {formatTime(currentTime)}
             </div>
 
-            {videoRef.current && (
+            {videoRef.current && videoRef.current.buffered && (
               <div className="absolute top-0 left-0 h-full w-full">
-                {Array.from(videoRef.current.buffered || []).map((_, index) => {
+                {Array.from({ length: videoRef.current.buffered.length }).map((_, index) => {
                   const start = videoRef.current?.buffered.start(index) || 0;
                   const end = videoRef.current?.buffered.end(index) || 0;
                   const width = ((end - start) / duration) * 100;
