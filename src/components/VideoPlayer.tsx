@@ -126,12 +126,26 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }
   };
 
-  const handleTimeSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = parseFloat(e.target.value);
-    setCurrentTime(time);
+  const handleTimeSeek = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const offsetX = clientX - rect.left;
+    const percentage = offsetX / rect.width;
+    const newTime = percentage * duration;
+    
     if (videoRef.current) {
-      videoRef.current.currentTime = time;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
     }
+  };
+
+  const handleTimePreview = (e: React.MouseEvent<HTMLDivElement>) => {
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const percentage = offsetX / rect.width;
+    return formatTime(percentage * duration);
   };
 
   const handleSpeedChange = (speed: number) => {
@@ -160,6 +174,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
     return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const getProgressBarStyles = () => {
+    const progress = (currentTime / duration) * 100;
+    return {
+      background: `linear-gradient(to right, #ea384c ${progress}%, #403E43 ${progress}%)`,
+    };
   };
 
   const handleMouseMove = () => {
@@ -228,26 +249,54 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
         <div className="flex flex-col gap-3 max-w-screen-lg mx-auto">
-          {/* Progress bar */}
-          <div className="relative group/progress w-full">
-            <input
-              type="range"
-              min="0"
-              max={duration || 100}
-              value={currentTime}
-              onChange={handleTimeSeek}
-              className="w-full h-1.5 accent-[#ea384c] bg-[#403E43] rounded-full appearance-none cursor-pointer hover:h-2 transition-all"
-            />
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/progress:opacity-100 transition-opacity bg-[#1A1F2C]/90 px-2 py-1 rounded text-xs text-white">
+          <div className="relative group/progress">
+            <div 
+              className="w-full h-1.5 rounded-full cursor-pointer relative overflow-hidden transition-all group-hover/progress:h-2.5"
+              onClick={handleTimeSeek}
+              onTouchStart={handleTimeSeek}
+              style={getProgressBarStyles()}
+            >
+              <div 
+                className="absolute left-0 top-0 bottom-0 bg-[#ea384c] rounded-full transition-all"
+                style={{ width: `${(currentTime / duration) * 100}%` }}
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full scale-0 group-hover/progress:scale-100 transition-transform" />
+              </div>
+            </div>
+            
+            <div 
+              className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/progress:opacity-100 transition-opacity bg-[#1A1F2C]/90 px-2 py-1 rounded text-xs text-white backdrop-blur-sm border border-white/10"
+              style={{ left: `${(currentTime / duration) * 100}%` }}
+            >
               {formatTime(currentTime)}
             </div>
+
+            {videoRef.current && (
+              <div className="absolute top-0 left-0 h-full w-full">
+                {Array.from(videoRef.current.buffered || []).map((_, index) => {
+                  const start = videoRef.current?.buffered.start(index) || 0;
+                  const end = videoRef.current?.buffered.end(index) || 0;
+                  const width = ((end - start) / duration) * 100;
+                  const left = (start / duration) * 100;
+                  return (
+                    <div
+                      key={index}
+                      className="absolute top-0 h-full bg-white/20"
+                      style={{
+                        left: `${left}%`,
+                        width: `${width}%`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className={cn(
             "grid items-center gap-4",
             isMobile ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[auto_auto_auto_1fr_auto_auto_auto]"
           )}>
-            {/* Play/Pause button */}
             <button
               onClick={handlePlayPause}
               className="text-white hover:text-[#ea384c] transition-colors"
@@ -257,7 +306,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
             {!isMobile && (
               <>
-                {/* Skip buttons */}
                 <button
                   onClick={() => handleSkip(-10)}
                   className="text-white hover:text-[#ea384c] transition-colors"
@@ -273,7 +321,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
               </>
             )}
 
-            {/* Volume control */}
             <div className={cn(
               "flex items-center gap-2 group/volume",
               isMobile ? "w-20" : "w-32"
@@ -301,12 +348,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
               />
             </div>
 
-            {/* Time display */}
             <span className="text-white/90 text-sm font-medium">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
 
-            {/* Settings menu */}
             <div className="relative ml-auto">
               <button 
                 onClick={() => setShowSettings(!showSettings)}
@@ -368,7 +413,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
               )}
             </div>
 
-            {/* Fullscreen button */}
             <button
               onClick={toggleFullscreen}
               className="text-white hover:text-[#ea384c] transition-colors"
@@ -383,7 +427,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         </div>
       </div>
 
-      {/* Mobile touch controls */}
       {isMobile && showControls && (
         <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-8 pointer-events-none">
           <button
