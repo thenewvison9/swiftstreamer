@@ -5,6 +5,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 const Index = () => {
   const [searchParams] = useSearchParams();
   const videoUrl = searchParams.get('url');
+  const isEmbed = searchParams.get('embed') === 'true';
 
   if (!videoUrl) {
     return (
@@ -17,14 +18,17 @@ const Index = () => {
           <p className="text-sm text-gray-500">
             Example: <code className="bg-gray-200 px-2 py-1 rounded">?url=https://example.com/video.m3u8</code>
           </p>
+          <p className="text-sm text-gray-500 mt-2">
+            For embed view: <code className="bg-gray-200 px-2 py-1 rounded">?url=...&embed=true</code>
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className={`${isEmbed ? '' : 'min-h-screen bg-gray-100'}`}>
+      <div className={`${isEmbed ? '' : 'max-w-6xl mx-auto p-4 sm:p-6 lg:p-8'}`}>
         <VideoPlayer url={videoUrl} />
       </div>
     </div>
