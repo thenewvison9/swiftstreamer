@@ -300,7 +300,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
           <div className={cn(
             "grid items-center gap-2 sm:gap-4",
-            isMobile ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[auto_auto_auto_1fr_auto_auto_auto]"
+            isMobile ? "grid-cols-[auto_1fr_auto_auto_auto]" : "grid-cols-[auto_auto_auto_1fr_auto_auto_auto]"
           )}>
             <button
               onClick={handlePlayPause}
@@ -353,83 +353,81 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
               />
             </div>
 
-            <span className="text-white/90 text-xs sm:text-sm font-medium justify-self-center">
+            <span className="text-white/90 text-xs sm:text-sm font-medium">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
 
-            <div className="flex items-center gap-2 justify-self-end">
-              <div className="relative">
-                <button 
-                  onClick={() => setShowSettings(!showSettings)}
-                  className={cn(
-                    "text-white transition-colors p-1.5 rounded-full",
-                    showSettings ? "bg-[#ea384c] text-white hover:bg-[#ea384c]/90" : "hover:text-[#ea384c]"
-                  )}
-                >
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                {showSettings && (
-                  <div className="absolute right-0 bottom-full mb-2 bg-[#1A1F2C]/95 rounded-lg p-2 sm:p-3 min-w-[180px] sm:min-w-[200px] backdrop-blur-sm border border-white/10 animate-fade-in z-30">
-                    <div className="space-y-4">
+            <div className="relative">
+              <button 
+                onClick={() => setShowSettings(!showSettings)}
+                className={cn(
+                  "text-white transition-colors p-1.5 rounded-full",
+                  showSettings ? "bg-[#ea384c] text-white hover:bg-[#ea384c]/90" : "hover:text-[#ea384c]"
+                )}
+              >
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+              {showSettings && (
+                <div className="absolute right-0 bottom-full mb-2 bg-[#1A1F2C]/95 rounded-lg p-2 sm:p-3 min-w-[180px] sm:min-w-[200px] backdrop-blur-sm border border-white/10 animate-fade-in z-30">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-white/80 text-sm mb-2 font-medium">Playback Speed</div>
+                      <div className="grid grid-cols-3 gap-1">
+                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                          <button
+                            key={speed}
+                            onClick={() => handleSpeedChange(speed)}
+                            className={cn(
+                              "px-2 py-1.5 text-sm rounded transition-all",
+                              playbackSpeed === speed 
+                                ? "bg-[#ea384c] text-white" 
+                                : "text-white hover:bg-white/10"
+                            )}
+                          >
+                            {speed}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {qualities.length > 0 && (
                       <div>
-                        <div className="text-white/80 text-sm mb-2 font-medium">Playback Speed</div>
-                        <div className="grid grid-cols-3 gap-1">
-                          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                        <div className="text-white/80 text-sm mb-2 font-medium">
+                          Quality
+                        </div>
+                        <div className="space-y-1">
+                          {qualities.map(({ height, level }) => (
                             <button
-                              key={speed}
-                              onClick={() => handleSpeedChange(speed)}
+                              key={level}
+                              onClick={() => handleQualityChange(level)}
                               className={cn(
-                                "px-2 py-1.5 text-sm rounded transition-all",
-                                playbackSpeed === speed 
+                                "block w-full text-left px-3 py-2 text-sm rounded transition-all",
+                                currentQuality === level 
                                   ? "bg-[#ea384c] text-white" 
                                   : "text-white hover:bg-white/10"
                               )}
                             >
-                              {speed}x
+                              {height}p
                             </button>
                           ))}
                         </div>
                       </div>
-
-                      {qualities.length > 0 && (
-                        <div>
-                          <div className="text-white/80 text-sm mb-2 font-medium">
-                            Quality
-                          </div>
-                          <div className="space-y-1">
-                            {qualities.map(({ height, level }) => (
-                              <button
-                                key={level}
-                                onClick={() => handleQualityChange(level)}
-                                className={cn(
-                                  "block w-full text-left px-3 py-2 text-sm rounded transition-all",
-                                  currentQuality === level 
-                                    ? "bg-[#ea384c] text-white" 
-                                    : "text-white hover:bg-white/10"
-                                )}
-                              >
-                                {height}p
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              <button
-                onClick={toggleFullscreen}
-                className="text-white hover:text-[#ea384c] transition-colors p-1.5"
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                )}
-              </button>
+                </div>
+              )}
             </div>
+
+            <button
+              onClick={toggleFullscreen}
+              className="text-white hover:text-[#ea384c] transition-colors p-1.5"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
+            </button>
           </div>
         </div>
       </div>
