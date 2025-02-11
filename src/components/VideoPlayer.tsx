@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw, Maximize2, Minimize2, ChevronRight } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -369,62 +369,51 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                   <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 {showSettings && (
-                  <div className="absolute right-0 bottom-full mb-2 bg-[#F1F0FB]/95 dark:bg-[#1A1F2C]/95 rounded-lg backdrop-blur-sm border border-white/10 animate-fade-in z-30 w-full sm:w-[280px] max-h-[calc(100vh-120px)] overflow-y-auto">
-                    <div className="p-3 sm:p-4 space-y-4">
-                      <div className="space-y-3">
-                        <div className="text-black/80 dark:text-white/80 text-base font-medium pb-2 border-b border-black/10 dark:border-white/10">
-                          Settings
+                  <div className="absolute right-0 bottom-full mb-2 bg-[#1A1F2C]/95 rounded-lg p-2 sm:p-3 min-w-[180px] sm:min-w-[200px] backdrop-blur-sm border border-white/10 animate-fade-in z-30">
+                    <div className="space-y-4">
+                      <div>
+                        <div className="text-white/80 text-sm mb-2 font-medium">Playback Speed</div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                            <button
+                              key={speed}
+                              onClick={() => handleSpeedChange(speed)}
+                              className={cn(
+                                "px-2 py-1.5 text-sm rounded transition-all",
+                                playbackSpeed === speed 
+                                  ? "bg-[#ea384c] text-white" 
+                                  : "text-white hover:bg-white/10"
+                              )}
+                            >
+                              {speed}x
+                            </button>
+                          ))}
                         </div>
-                        
+                      </div>
+
+                      {qualities.length > 0 && (
                         <div>
-                          <div className="text-black/70 dark:text-white/70 text-sm font-medium mb-2">
-                            Playback Speed
+                          <div className="text-white/80 text-sm mb-2 font-medium">
+                            Quality
                           </div>
-                          <div className="grid grid-cols-3 gap-1.5">
-                            {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                          <div className="space-y-1">
+                            {qualities.map(({ height, level }) => (
                               <button
-                                key={speed}
-                                onClick={() => handleSpeedChange(speed)}
+                                key={level}
+                                onClick={() => handleQualityChange(level)}
                                 className={cn(
-                                  "px-3 py-2 text-sm rounded-md transition-all",
-                                  playbackSpeed === speed 
+                                  "block w-full text-left px-3 py-2 text-sm rounded transition-all",
+                                  currentQuality === level 
                                     ? "bg-[#ea384c] text-white" 
-                                    : "text-black/80 dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/10"
+                                    : "text-white hover:bg-white/10"
                                 )}
                               >
-                                {speed}x
+                                {height}p
                               </button>
                             ))}
                           </div>
                         </div>
-
-                        {qualities.length > 0 && (
-                          <div>
-                            <div className="text-black/70 dark:text-white/70 text-sm font-medium mb-2">
-                              Quality
-                            </div>
-                            <div className="space-y-1">
-                              {qualities.map(({ height, level }) => (
-                                <button
-                                  key={level}
-                                  onClick={() => handleQualityChange(level)}
-                                  className={cn(
-                                    "flex items-center justify-between w-full px-3 py-2.5 text-sm rounded-md transition-all",
-                                    currentQuality === level 
-                                      ? "bg-[#ea384c] text-white" 
-                                      : "text-black/80 dark:text-white/80 hover:bg-black/5 dark:hover:bg-white/10"
-                                  )}
-                                >
-                                  <span>{height}p</span>
-                                  {currentQuality === level && (
-                                    <ChevronRight className="w-4 h-4" />
-                                  )}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
                 )}
