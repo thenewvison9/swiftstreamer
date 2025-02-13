@@ -31,6 +31,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const isMobile = useIsMobile();
   const [currentMenu, setCurrentMenu] = useState<SettingsMenuType>('main');
   const [timePreview, setTimePreview] = useState<{ time: number; position: number } | null>(null);
+  const doubleTapTimeoutRef = useRef<number>();
+  const [showDoubleTapIndicator, setShowDoubleTapIndicator] = useState<'left' | 'right' | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -331,6 +333,33 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }
   };
 
+  const handleDoubleTap = (direction: 'left' | 'right') => {
+    handleSkip(direction === 'left' ? -10 : 10);
+    setShowDoubleTapIndicator(direction);
+    setTimeout(() => setShowDoubleTapIndicator(null), 500);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touch = e.changedTouches[0];
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const side = x < rect.width / 2 ? 'left' : 'right';
+
+    if (doubleTapTimeoutRef.current) {
+      window.clearTimeout(doubleTapTimeoutRef.current);
+      doubleTapTimeoutRef.current = undefined;
+      handleDoubleTap(side);
+    } else {
+      doubleTapTimeoutRef.current = window.setTimeout(() => {
+        doubleTapTimeoutRef.current = undefined;
+        handlePlayPause();
+      }, 300);
+    }
+  };
+
   if (error) {
     return (
       <div className="w-full h-[60vh] flex items-center justify-center bg-black text-white">
@@ -353,22 +382,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
           setShowSettings(false);
         }
       }}
-      onTouchStart={() => {
-        setShowControls(true);
-        if (controlsTimeoutRef.current) {
-          window.clearTimeout(controlsTimeoutRef.current);
-        }
-        controlsTimeoutRef.current = window.setTimeout(() => {
-          if (isPlaying) {
-            setShowControls(false);
-            setShowSettings(false);
-          }
-        }, 3000);
-      }}
+      onTouchEnd={handleTouchEnd}
     >
       {(loading || isBuffering) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
-          <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 text-[#ea384c] animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20 backdrop-blur-sm transition-all duration-300">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-12 h-12 text-[#ea384c] animate-spin" />
+            <span className="text-white/80 text-sm">
+              {loading ? 'Loading video...' : 'Buffering...'}
+            </span>
+          </div>
         </div>
       )}
       
@@ -387,7 +410,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
           <div className="relative group/progress">
             {timePreview && (
               <div 
-                className="absolute bottom-full mb-2 bg-[#1A1F2C] text-white text-sm px-2 py-1 rounded transform -translate-x-1/2 pointer-events-none"
+                className="absolute bottom-full mb-2 bg-[#1A1F2C] text-white text-sm px-2 py-1 rounded transform -translate-x-1/2 pointer-events-none backdrop-blur-sm"
                 style={{ left: timePreview.position }}
               >
                 {formatTime(timePreview.time)}
@@ -539,16 +562,31 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-4 sm:px-8 pointer-events-none">
           <button
             onClick={() => handleSkip(-10)}
-            className="text-white/80 hover:text-white pointer-events-auto p-4 sm:p-5 bg-black/20 rounded-full backdrop-blur-sm"
+            className="text-white/80 hover:text-white pointer-events-auto p-4 sm:p-5 bg-black/40 rounded-full backdrop-blur-sm transition-all hover:bg-black/60"
           >
             <RotateCcw className="w-8 h-8 sm:w-10 sm:h-10" />
           </button>
           <button
             onClick={() => handleSkip(10)}
-            className="text-white/80 hover:text-white pointer-events-auto p-4 sm:p-5 bg-black/20 rounded-full backdrop-blur-sm"
+            className="text-white/80 hover:text-white pointer-events-auto p-4 sm:p-5 bg-black/40 rounded-full backdrop-blur-sm transition-all hover:bg-black/60"
           >
             <RotateCw className="w-8 h-8 sm:w-10 sm:h-10" />
           </button>
+        </div>
+      )}
+
+      {showDoubleTapIndicator && (
+        <div 
+          className={cn(
+            "absolute top-1/2 -translate-y-1/2 w-20 h-20 bg-black/40 rounded-full flex items-center justify-center transition-all duration-300 animate-fade-in",
+            showDoubleTapIndicator === 'left' ? "left-8" : "right-8"
+          )}
+        >
+          {showDoubleTapIndicator === 'left' ? (
+            <RotateCcw className="w-10 h-10 text-white" />
+          ) : (
+            <RotateCw className="w-10 h-10 text-white" />
+          )}
         </div>
       )}
     </div>
