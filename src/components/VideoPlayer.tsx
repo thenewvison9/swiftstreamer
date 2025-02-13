@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
+import { Volume2, Volume1, VolumeX, Play, Pause, Settings, Loader2, RotateCcw, RotateCw, Maximize2, Minimize2, ChevronRight, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface VideoPlayerProps {
   url: string;
 }
+
+type SettingsMenuType = 'main' | 'playback' | 'quality';
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -27,6 +29,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const controlsTimeoutRef = useRef<number>();
   const hlsRef = useRef<Hls | null>(null);
   const isMobile = useIsMobile();
+  const [currentMenu, setCurrentMenu] = useState<SettingsMenuType>('main');
 
   useEffect(() => {
     const video = videoRef.current;
@@ -209,6 +212,107 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }, 3000);
   };
 
+  const renderSettingsMenu = () => {
+    switch (currentMenu) {
+      case 'main':
+        return (
+          <div className="space-y-1">
+            <button
+              onClick={() => setCurrentMenu('playback')}
+              className="flex items-center justify-between w-full px-3 py-2.5 text-sm rounded-md text-white/80 hover:bg-white/10"
+            >
+              <span>Playback Speed</span>
+              <div className="flex items-center gap-2">
+                <span className="text-white/60">{playbackSpeed}x</span>
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </button>
+            {qualities.length > 0 && (
+              <button
+                onClick={() => setCurrentMenu('quality')}
+                className="flex items-center justify-between w-full px-3 py-2.5 text-sm rounded-md text-white/80 hover:bg-white/10"
+              >
+                <span>Quality</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-white/60">
+                    {qualities[currentQuality]?.height}p
+                  </span>
+                  <ChevronRight className="w-4 h-4" />
+                </div>
+              </button>
+            )}
+          </div>
+        );
+
+      case 'playback':
+        return (
+          <>
+            <button
+              onClick={() => setCurrentMenu('main')}
+              className="flex items-center gap-2 text-white/80 hover:text-white mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Playback Speed</span>
+            </button>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => {
+                    handleSpeedChange(speed);
+                    setCurrentMenu('main');
+                  }}
+                  className={cn(
+                    "px-3 py-2 text-sm rounded-md transition-all",
+                    playbackSpeed === speed 
+                      ? "bg-[#ea384c] text-white" 
+                      : "text-white/80 hover:bg-white/10"
+                  )}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </>
+        );
+
+      case 'quality':
+        return (
+          <>
+            <button
+              onClick={() => setCurrentMenu('main')}
+              className="flex items-center gap-2 text-white/80 hover:text-white mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Quality</span>
+            </button>
+            <div className="space-y-1">
+              {qualities.map(({ height, level }) => (
+                <button
+                  key={level}
+                  onClick={() => {
+                    handleQualityChange(level);
+                    setCurrentMenu('main');
+                  }}
+                  className={cn(
+                    "flex items-center justify-between w-full px-3 py-2.5 text-sm rounded-md transition-all",
+                    currentQuality === level 
+                      ? "bg-[#ea384c] text-white" 
+                      : "text-white/80 hover:bg-white/10"
+                  )}
+                >
+                  <span>{height}p</span>
+                  {currentQuality === level && (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </>
+        );
+    }
+  };
+
   if (error) {
     return (
       <div className="w-full h-[60vh] flex items-center justify-center bg-black text-white">
@@ -369,51 +473,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                   <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 {showSettings && (
-                  <div className="absolute right-0 bottom-full mb-2 bg-[#1A1F2C]/95 rounded-lg p-2 sm:p-3 min-w-[180px] sm:min-w-[200px] backdrop-blur-sm border border-white/10 animate-fade-in z-30">
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-white/80 text-sm mb-2 font-medium">Playback Speed</div>
-                        <div className="grid grid-cols-3 gap-1">
-                          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
-                            <button
-                              key={speed}
-                              onClick={() => handleSpeedChange(speed)}
-                              className={cn(
-                                "px-2 py-1.5 text-sm rounded transition-all",
-                                playbackSpeed === speed 
-                                  ? "bg-[#ea384c] text-white" 
-                                  : "text-white hover:bg-white/10"
-                              )}
-                            >
-                              {speed}x
-                            </button>
-                          ))}
+                  <div className="absolute right-0 bottom-full mb-2 bg-[#1A1F2C]/95 rounded-lg backdrop-blur-sm border border-white/10 animate-fade-in z-30 w-full sm:w-[280px] max-h-[calc(100vh-120px)] overflow-y-auto">
+                    <div className="p-3 sm:p-4 space-y-4">
+                      <div className="space-y-3">
+                        <div className="text-white/80 text-base font-medium pb-2 border-b border-white/10">
+                          Settings
                         </div>
+                        {renderSettingsMenu()}
                       </div>
-
-                      {qualities.length > 0 && (
-                        <div>
-                          <div className="text-white/80 text-sm mb-2 font-medium">
-                            Quality
-                          </div>
-                          <div className="space-y-1">
-                            {qualities.map(({ height, level }) => (
-                              <button
-                                key={level}
-                                onClick={() => handleQualityChange(level)}
-                                className={cn(
-                                  "block w-full text-left px-3 py-2 text-sm rounded transition-all",
-                                  currentQuality === level 
-                                    ? "bg-[#ea384c] text-white" 
-                                    : "text-white hover:bg-white/10"
-                                )}
-                              >
-                                {height}p
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
