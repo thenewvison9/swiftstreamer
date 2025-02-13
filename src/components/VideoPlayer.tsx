@@ -368,7 +368,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         <div className="flex flex-col gap-2 sm:gap-3 max-w-screen-lg mx-auto">
           <div className="relative group/progress">
             <div 
-              className="w-full h-1 sm:h-1.5 rounded-full cursor-pointer relative overflow-hidden transition-all group-hover/progress:h-2 sm:group-hover/progress:h-2.5"
+              className="w-full h-2 sm:h-1.5 rounded-full cursor-pointer relative overflow-hidden transition-all group-hover/progress:h-3 sm:group-hover/progress:h-2.5"
               onClick={handleTimeSeek}
               onTouchStart={handleTimeSeek}
               style={getProgressBarStyles()}
@@ -377,73 +377,56 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                 className="absolute left-0 top-0 bottom-0 bg-[#ea384c] rounded-full transition-all"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full scale-0 group-hover/progress:scale-100 transition-transform" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-3 sm:h-3 bg-white rounded-full scale-0 group-hover/progress:scale-100 transition-transform" />
               </div>
-            </div>
-            
-            <div 
-              className="absolute -top-6 sm:-top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/progress:opacity-100 transition-opacity bg-[#1A1F2C]/90 px-2 py-1 rounded text-xs text-white backdrop-blur-sm border border-white/10"
-              style={{ left: `${(currentTime / duration) * 100}%` }}
-            >
-              {formatTime(currentTime)}
-            </div>
-
-            <div className="absolute top-0 left-0 h-full w-full">
-              {getBufferedRanges().map((range, index) => (
-                <div
-                  key={index}
-                  className="absolute top-0 h-full bg-white/20"
-                  style={{
-                    left: `${(range.start / duration) * 100}%`,
-                    width: `${((range.end - range.start) / duration) * 100}%`,
-                  }}
-                />
-              ))}
             </div>
           </div>
 
           <div className={cn(
-            "grid items-center gap-2 sm:gap-4",
-            isMobile ? "grid-cols-[auto_1fr_auto_auto_auto]" : "grid-cols-[auto_auto_auto_1fr_auto_auto_auto]"
+            "grid items-center gap-4",
+            isMobile ? "grid-cols-[auto_1fr_auto_auto]" : "grid-cols-[auto_auto_auto_1fr_auto_auto_auto]"
           )}>
             <button
               onClick={handlePlayPause}
-              className="text-white hover:text-[#ea384c] transition-colors"
+              className="text-white hover:text-[#ea384c] transition-colors p-2"
             >
-              {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
+              {isPlaying ? 
+                <Pause className="w-6 h-6 sm:w-6 sm:h-6" /> : 
+                <Play className="w-6 h-6 sm:w-6 sm:h-6" />
+              }
             </button>
 
             {!isMobile && (
               <>
                 <button
                   onClick={() => handleSkip(-10)}
-                  className="text-white hover:text-[#ea384c] transition-colors"
+                  className="text-white hover:text-[#ea384c] transition-colors p-2"
                 >
-                  <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <RotateCcw className="w-5 h-5 sm:w-5 sm:h-5" />
                 </button>
                 <button
                   onClick={() => handleSkip(10)}
-                  className="text-white hover:text-[#ea384c] transition-colors"
+                  className="text-white hover:text-[#ea384c] transition-colors p-2"
                 >
-                  <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <RotateCw className="w-5 h-5 sm:w-5 sm:h-5" />
                 </button>
               </>
             )}
 
             <div className={cn(
               "flex items-center gap-2 group/volume",
-              isMobile ? "w-16 sm:w-20" : "w-24 sm:w-32"
+              isMobile ? "w-20 sm:w-24" : "w-24 sm:w-32"
             )}>
               <button 
                 onClick={() => setVolume(volume === 0 ? 1 : 0)}
-                className="text-white hover:text-[#ea384c] transition-colors"
+                className="text-white hover:text-[#ea384c] transition-colors p-2"
               >
                 {volume === 0 ? (
-                  <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <VolumeX className="w-6 h-6 sm:w-6 sm:h-6" />
                 ) : volume < 0.5 ? (
-                  <Volume1 className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <Volume1 className="w-6 h-6 sm:w-6 sm:h-6" />
                 ) : (
-                  <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <Volume2 className="w-6 h-6 sm:w-6 sm:h-6" />
                 )}
               </button>
               <input
@@ -453,12 +436,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                 step="0.1"
                 value={volume}
                 onChange={handleVolumeChange}
-                className="w-full h-1 accent-[#ea384c] bg-[#403E43] rounded-full appearance-none cursor-pointer opacity-0 group-hover/volume:opacity-100 transition-opacity"
+                className="w-full h-1.5 accent-[#ea384c] bg-[#403E43] rounded-full appearance-none cursor-pointer opacity-0 group-hover/volume:opacity-100 transition-opacity"
               />
             </div>
 
             <div className="flex items-center gap-2 justify-end ml-auto">
-              <span className="text-white/90 text-xs sm:text-sm font-medium">
+              <span className="text-white/90 text-sm sm:text-base font-medium">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
 
@@ -466,21 +449,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
                 <button 
                   onClick={() => setShowSettings(!showSettings)}
                   className={cn(
-                    "text-white transition-colors p-1.5 rounded-full",
+                    "text-white transition-colors p-2 rounded-full",
                     showSettings ? "bg-[#ea384c] text-white hover:bg-[#ea384c]/90" : "hover:text-[#ea384c]"
                   )}
                 >
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Settings className="w-6 h-6 sm:w-6 sm:h-6" />
                 </button>
+
                 {showSettings && (
-                  <div className="absolute right-0 bottom-full mb-2 bg-[#1A1F2C]/95 rounded-lg backdrop-blur-sm border border-white/10 animate-fade-in z-30 w-full sm:w-[280px] max-h-[calc(100vh-120px)] overflow-y-auto">
-                    <div className="p-3 sm:p-4 space-y-4">
-                      <div className="space-y-3">
-                        <div className="text-white/80 text-base font-medium pb-2 border-b border-white/10">
-                          Settings
-                        </div>
-                        {renderSettingsMenu()}
-                      </div>
+                  <div className="absolute right-0 bottom-full mb-2 bg-[#1A1F2C]/95 rounded-lg backdrop-blur-sm border border-white/10 animate-fade-in z-30 w-[280px] max-h-[calc(100vh-120px)] overflow-y-auto">
+                    <div className="p-4 space-y-4">
+                      {renderSettingsMenu()}
                     </div>
                   </div>
                 )}
@@ -488,12 +467,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
               <button
                 onClick={toggleFullscreen}
-                className="text-white hover:text-[#ea384c] transition-colors p-1.5"
+                className="text-white hover:text-[#ea384c] transition-colors p-2"
               >
                 {isFullscreen ? (
-                  <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Minimize2 className="w-6 h-6 sm:w-6 sm:h-6" />
                 ) : (
-                  <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Maximize2 className="w-6 h-6 sm:w-6 sm:h-6" />
                 )}
               </button>
             </div>
@@ -505,15 +484,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-4 sm:px-8 pointer-events-none">
           <button
             onClick={() => handleSkip(-10)}
-            className="text-white/80 hover:text-white pointer-events-auto p-3 sm:p-4"
+            className="text-white/80 hover:text-white pointer-events-auto p-4 sm:p-5 bg-black/20 rounded-full backdrop-blur-sm"
           >
-            <RotateCcw className="w-6 h-6 sm:w-8 sm:h-8" />
+            <RotateCcw className="w-8 h-8 sm:w-10 sm:h-10" />
           </button>
           <button
             onClick={() => handleSkip(10)}
-            className="text-white/80 hover:text-white pointer-events-auto p-3 sm:p-4"
+            className="text-white/80 hover:text-white pointer-events-auto p-4 sm:p-5 bg-black/20 rounded-full backdrop-blur-sm"
           >
-            <RotateCw className="w-6 h-6 sm:w-8 sm:h-8" />
+            <RotateCw className="w-8 h-8 sm:w-10 sm:h-10" />
           </button>
         </div>
       )}
