@@ -30,6 +30,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const hlsRef = useRef<Hls | null>(null);
   const isMobile = useIsMobile();
   const [currentMenu, setCurrentMenu] = useState<SettingsMenuType>('main');
+  const [timePreview, setTimePreview] = useState<{ time: number; position: number } | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -212,6 +213,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }, 3000);
   };
 
+  const handleMouseMoveProgress = (e: React.MouseEvent<HTMLDivElement>) => {
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const percentage = offsetX / rect.width;
+    const previewTime = percentage * duration;
+    
+    setTimePreview({
+      time: previewTime,
+      position: offsetX,
+    });
+  };
+
+  const handleMouseLeaveProgress = () => {
+    setTimePreview(null);
+  };
+
   const renderSettingsMenu = () => {
     switch (currentMenu) {
       case 'main':
@@ -367,18 +385,55 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       )}>
         <div className="flex flex-col gap-2 sm:gap-3 max-w-screen-lg mx-auto">
           <div className="relative group/progress">
+            {timePreview && (
+              <div 
+                className="absolute bottom-full mb-2 bg-[#1A1F2C] text-white text-sm px-2 py-1 rounded transform -translate-x-1/2 pointer-events-none"
+                style={{ left: timePreview.position }}
+              >
+                {formatTime(timePreview.time)}
+              </div>
+            )}
+            
             <div 
               className="w-full h-2 sm:h-1.5 rounded-full cursor-pointer relative overflow-hidden transition-all group-hover/progress:h-3 sm:group-hover/progress:h-2.5"
               onClick={handleTimeSeek}
               onTouchStart={handleTimeSeek}
-              style={getProgressBarStyles()}
+              onMouseMove={handleMouseMoveProgress}
+              onMouseLeave={handleMouseLeaveProgress}
             >
+              {/* Buffered ranges */}
+              {getBufferedRanges().map((range, index) => {
+                const start = (range.start / duration) * 100;
+                const end = (range.end / duration) * 100;
+                const width = end - start;
+                return (
+                  <div
+                    key={index}
+                    className="absolute top-0 bottom-0 bg-white/20"
+                    style={{
+                      left: `${start}%`,
+                      width: `${width}%`,
+                    }}
+                  />
+                );
+              })}
+              
+              {/* Progress bar */}
               <div 
                 className="absolute left-0 top-0 bottom-0 bg-[#ea384c] rounded-full transition-all"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 sm:w-3 sm:h-3 bg-white rounded-full scale-0 group-hover/progress:scale-100 transition-transform" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#ea384c] rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-lg" />
               </div>
+
+              {/* Hover effect */}
+              <div className="absolute inset-0 w-full h-full opacity-0 group-hover/progress:opacity-20 bg-gradient-to-r from-white/0 via-white to-white/0 transition-opacity" />
+            </div>
+
+            {/* Timestamps */}
+            <div className="flex justify-between items-center mt-1 text-xs text-white/60">
+              <span>{formatTime(currentTime)}</span>
+              <span>-{formatTime(duration - currentTime)}</span>
             </div>
           </div>
 
